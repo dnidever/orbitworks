@@ -4,7 +4,6 @@ import io
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
-import dill
 from orbit import orbit
 
 st.set_page_config(page_title="Orbit Works | ASTR 372", page_icon="🪐", layout="wide")
@@ -19,8 +18,14 @@ def compute_orbit(mstar, mplanet, period, ecc):
 
 @st.cache_data(show_spinner=False)
 def observations():
-    with (ROOT / "orbit.pkl").open("rb") as f:
-        return dill.load(f), dill.load(f)
+    """Load both original observation series, stored as compact text for GitHub."""
+    import base64
+    import json
+    import zlib
+    encoded = (ROOT / "orbit_data.b85").read_text().strip()
+    raw = zlib.decompress(base64.b85decode(encoded))
+    arrays = json.loads(raw)
+    return tuple({"t": np.asarray(d, float)[:, 0], "rv": np.asarray(d, float)[:, 1]} for d in arrays)
 
 def rv_model(star, times, period_days):
     phase = np.mod(np.asarray(times) / DAY, period_days)
